@@ -4,7 +4,7 @@ import cv2
 import os
 
 # Initialize Kafka producer
-producer = KafkaProducer(bootstrap_servers='localhost:9092')
+producer = KafkaProducer(bootstrap_servers='10.20.12.57:9092')
 
 def send_image_dataset(folder_path):
     for i, filename in enumerate(os.listdir(folder_path)):

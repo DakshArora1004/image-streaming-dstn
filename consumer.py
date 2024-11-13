@@ -7,7 +7,7 @@ import os
 # Initialize Kafka consumer
 consumer = KafkaConsumer(
     'image_dataset',
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers='10.20.12.57:9092',
     auto_offset_reset='earliest',
     enable_auto_commit=True
 )
