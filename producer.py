@@ -4,7 +4,8 @@ import cv2
 import os
 
 # Initialize Kafka producer
-producer = KafkaProducer(bootstrap_servers='10.20.12.57:9092')
+producer = KafkaProducer(bootstrap_servers='10.70.6.244:9092',
+                        max_request_size=5242880)  # 5 MB)
 
 def send_image_dataset(folder_path):
     for i, filename in enumerate(os.listdir(folder_path)):
@@ -24,7 +25,13 @@ def send_image_dataset(folder_path):
         serialized_data = image_data.SerializeToString()
 
         # Send to Kafka
-        producer.send('image_dataset', serialized_data)
+        future = producer.send('nab_test3', serialized_data)
+        try:
+            record_metadata = future.get(timeout=10)
+            print(f"Sent image {filename} with offset {record_metadata.offset}")
+        except Exception as e:
+            print(f"Failed to send image {filename}: {e}")
+
         producer.flush()
         print(f"Sent image {filename}")
 
