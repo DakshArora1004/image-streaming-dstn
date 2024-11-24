@@ -1,71 +1,87 @@
 from pyflink.common import WatermarkStrategy, Types
 from pyflink.common.serialization import SimpleStringSchema
 from pyflink.datastream import StreamExecutionEnvironment
-from pyflink.datastream.connectors import KafkaSource
 from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitializer
 import uuid
 import image_dataset_pb2
 import numpy as np
 import cv2
+import logging
+import sys
+import time
+logging.basicConfig(level=logging.INFO)
 
-# Create a StreamExecutionEnvironment
-env = StreamExecutionEnvironment.get_execution_environment()
+def create_pipeline():
+    # Create a StreamExecutionEnvironment
+    env = StreamExecutionEnvironment.get_execution_environment()
+    env.set_parallelism(1)
 
-# Adding the jar to my streaming environment
-env.add_jars("file:///home/pythonProject/UseCases/flink-sql-connector-kafka.jar")
+    
+    # Add required Kafka connector JAR
+    env.add_jars("file:///home/duckqck/image-streaming-kafka/flink-jars/flink-sql-connector-kafka-3.3.0-1.20.jar")
 
-properties = {
-    'bootstrap.servers': 'your-bootstrap-url:9092',
-    'sasl.mechanism': 'SCRAM-SHA-256',
-    'security.protocol': 'SASL_SSL',
-    'sasl.jaas.config': "org.apache.flink.kafka.shaded.org.apache.kafka.common.security.scram.ScramLoginModule required \
-    username='your-username' \
-    password='your-password';",
-    'group.id': 'observability',
-}
+    # Kafka properties
+    properties = {
+        'bootstrap.servers': '10.20.15.14:9092',
+        'group.id': 'flink_image_processor',
+        'auto.offset.reset': 'latest',
+        'socket.timeout.ms': '5000',      # Add this
+        'request.timeout.ms': '6000'      # Add this
+    }
 
-earliest = False
-offset = KafkaOffsetsInitializer.earliest() if earliest else KafkaOffsetsInitializer.latest()
+    # Create Kafka source
+    kafka_source = KafkaSource.builder() \
+        .set_topics("flink_test3") \
+        .set_properties(properties) \
+        .set_starting_offsets(KafkaOffsetsInitializer.latest()) \
+        .set_value_only_deserializer(SimpleStringSchema()) \
+        .build()
 
-# Create a Kafka Source
-kafka_source = KafkaSource.builder() \
-    .set_topics("iot") \
-    .set_properties(properties) \
-    .set_starting_offsets(offset) \
-    .set_value_only_deserializer(SimpleStringSchema())\
-    .build()
+    # Create DataStream
+    data_stream = env.from_source(
+        source=kafka_source,
+        watermark_strategy=WatermarkStrategy.for_monotonous_timestamps(),
+        source_name="Kafka Source"
+    )
 
-# Create a DataStream from the Kafka source and assign timestamps and watermarks
-data_stream = env.from_source(kafka_source, WatermarkStrategy.for_monotonous_timestamps(), "Kafka Source")
+    def process_image(serialized_data):
+        try:
+            # Deserialize Protobuf message
+            image_data = image_dataset_pb2.ImageData()
+            image_data.ParseFromString(serialized_data.encode())
 
-# Print line for readability in the console
-print("start reading data from kafka")
+            # Convert bytes to image
+            np_array = np.frombuffer(image_data.image_bytes, np.uint8)
+            image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
 
-# Processing Function
-def process_image(serialized_data):
-    # Deserialize Protobuf message
-    image_data = image_dataset_pb2.ImageData()
-    image_data.ParseFromString(serialized_data.encode())  # Convert to bytes
+            # Process image
+            gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Convert bytes back to an image
-    np_array = np.frombuffer(image_data.image_bytes, np.uint8)
-    image = cv2.imdecode(np_array, cv2.IMREAD_COLOR)
+            # Save processed image
+            processed_filename = f"processed_{image_data.filename}"
+            cv2.imwrite(processed_filename, gray_image)
 
-    # Example Processing: Convert to grayscale
-    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+            return f"Successfully processed {image_data.filename} as {processed_filename}"
+        except Exception as e:
+            return f"Error processing image: {str(e)}"
 
-    # Optionally save the processed image with a unique name
-    processed_filename = f"processed_{image_data.filename}"
-    cv2.imwrite(processed_filename, gray_image)
+    # Apply processing and add error handling
+    processed_stream = data_stream.map(
+        process_image,
+        output_type=Types.STRING()
+    ).name("Image Processing")  # Name the operator for better monitoring
 
-    # Return a log or message for the processed image
-    return f"Processed {image_data.filename} as {processed_filename}"
+    # Add sink operation
+    processed_stream.print().name("Print Results")
 
-# Apply the processing function to the data stream
-data_stream.map(
-    lambda x: process_image(x), 
-    output_type=Types.STRING()
-).print()
+    return env
 
-# Execute the Flink pipeline
-env.execute("Kafka Source Example")
+if __name__ == "__main__":
+    print("About to execute Flink job...")
+    sys.stdout.flush()
+    try:
+        env = create_pipeline()  # Get the environment
+        job_result = env.execute("Image Processing Pipeline")
+        print(f"Job submitted with ID: {job_result.get_job_id()}")
+    except Exception as e:
+        print(f"Error executing job: {str(e)}")
