@@ -2,6 +2,7 @@ from pyflink.common import WatermarkStrategy, Types
 from pyflink.common.serialization import SimpleStringSchema
 from pyflink.datastream import StreamExecutionEnvironment
 from pyflink.datastream.connectors.kafka import KafkaSource, KafkaOffsetsInitializer
+from pyflink.common import Configuration  # Changed from pyflink.common.config
 import uuid
 import image_dataset_pb2
 import numpy as np
@@ -9,17 +10,23 @@ import cv2
 import logging
 import sys
 import time
+import os
 logging.basicConfig(level=logging.INFO)
 
+
 def create_pipeline():
-    # Create a StreamExecutionEnvironment
-    env = StreamExecutionEnvironment.get_execution_environment()
-    env.set_parallelism(1)
-
+    config = Configuration()
     
-    # Add required Kafka connector JAR
-    env.add_jars("file:///home/duckqck/image-streaming-kafka/flink-jars/flink-sql-connector-kafka-3.3.0-1.20.jar")
-
+    # Get absolute paths for the JARs
+    kafka_jar = "/home/duckqck/flink-1.20.0/opt/flink-connector-kafka-3.3.0.jar"
+    python_jar = "/home/duckqck/flink-1.20.0/opt/flink-python-1.20.0.jar"
+    
+    # Set the jars using the absolute paths
+    jars_path = f"file:{kafka_jar};file:{python_jar}"
+    config.set_string("pipeline.jars", jars_path)
+    
+    env = StreamExecutionEnvironment.get_execution_environment(config)
+    env.set_parallelism(1)
     # Kafka properties
     properties = {
         'bootstrap.servers': '10.20.15.14:9092',
