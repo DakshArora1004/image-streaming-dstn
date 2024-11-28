@@ -4,7 +4,7 @@ import cv2
 import os
 
 # Initialize Kafka producer
-producer = KafkaProducer(bootstrap_servers='10.20.15.14:9092',
+producer = KafkaProducer(bootstrap_servers='localhost:9092',
                         max_request_size=5242880)  # 5 MB)
 
 def send_image_dataset(folder_path):
