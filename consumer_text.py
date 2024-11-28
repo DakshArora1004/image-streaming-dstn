@@ -1,48 +1,30 @@
-import os
-import logging
 from kafka import KafkaConsumer
-import text_dataset_pb2  # Your protobuf message
+import text_dataset_pb2  # Generated from text_dataset.proto
+import os
 
-# FUSE Directory Path
-fuse_directory = '/mnt/fuse_directory'  # Same directory where the FUSE filesystem is mounted
-
-# Kafka consumer setup
+# Initialize Kafka consumer
 consumer = KafkaConsumer(
-    'your_topic',  # Replace with your actual topic name
-    bootstrap_servers=['your_kafka_broker'],
+    'text_topic',  # Kafka topic for text data
+    bootstrap_servers='localhost:9092',
     auto_offset_reset='earliest',
-    enable_auto_commit=True,
-    group_id='your_group'
+    enable_auto_commit=False,
+    fetch_max_wait_ms=100,
 )
 
-# Log configuration
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+def consume_text(save_path='received_data'):
+    os.makedirs(save_path, exist_ok=True)  # Ensure the save directory exists
 
-def write_to_fuse(data):
-    """Write data to the FUSE filesystem (received_data.txt)"""
-    try:
-        with open(os.path.join(fuse_directory, 'received_data.txt'), 'a') as f:
-            f.write(data + '\n')
-    except Exception as e:
-        logger.error(f"Error writing to FUSE: {e}")
-
-def consume_messages():
-    """Consume messages from Kafka and write to FUSE"""
-    logger.info("Consumer started...")
     for message in consumer:
-        # Deserialize the protobuf message
-        data = message.value
-        try:
-            my_message = text_dataset_pb2.YourMessageType()  # Adjust for your protobuf message type
-            my_message.ParseFromString(data)
-            # Convert the message to a string (or any desired format)
-            data_str = str(my_message)
-            # Write the deserialized data to the FUSE filesystem
-            write_to_fuse(data_str)
-            logger.info(f"Data written to FUSE: {data_str}")
-        except Exception as e:
-            logger.error(f"Error processing message: {e}")
+        # Deserialize protobuf message
+        text_data = text_dataset_pb2.TextData()
+        text_data.ParseFromString(message.value)
 
-if __name__ == '__main__':
-    consume_messages()
+        # Optionally, process or save the text content
+        filename = os.path.join(save_path, f"text_{text_data.id}.txt")
+        with open(filename, 'w', encoding='utf-8') as file:
+            file.write(text_data.content)
+        
+        print(f"Received and saved text with ID {text_data.id} as {filename}")
+
+# Example usage
+consume_text()
