@@ -4,7 +4,7 @@ import cv2
 import os
 
 # Initialize Kafka producer
-producer = KafkaProducer(bootstrap_servers='localhost:9092',
+producer = KafkaProducer(bootstrap_servers='10.70.6.244:9092',
                         max_request_size=5242880)  # 5 MB)
 
 def send_image_dataset(folder_path):
@@ -25,7 +25,7 @@ def send_image_dataset(folder_path):
         serialized_data = image_data.SerializeToString()
 
         # Send to Kafka
-        future = producer.send('flink_test7', serialized_data)
+        future = producer.send('flink_test11', serialized_data)
         try:
             record_metadata = future.get(timeout=10)
             print(f"Sent image {filename} with offset {record_metadata.offset}")
