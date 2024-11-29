@@ -25,7 +25,7 @@ def send_image_dataset(folder_path):
         serialized_data = image_data.SerializeToString()
 
         # Send to Kafka
-        future = producer.send('flink_test11', serialized_data)
+        future = producer.send('flink_test12', serialized_data)
         try:
             record_metadata = future.get(timeout=10)
             print(f"Sent image {filename} with offset {record_metadata.offset}")

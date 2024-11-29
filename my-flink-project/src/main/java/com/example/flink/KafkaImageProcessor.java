@@ -3,17 +3,18 @@ package com.example.flink;
 import com.google.protobuf.InvalidProtocolBufferException;
 import image_dataset.ImageDataOuterClass;
 import org.apache.flink.api.common.serialization.DeserializationSchema;
+import org.apache.flink.api.common.serialization.SimpleStringSchema;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.connectors.kafka.FlinkKafkaConsumer;
+import org.apache.flink.streaming.connectors.kafka.FlinkKafkaProducer;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Base64;
 import java.util.Properties;
 
 public class KafkaImageProcessor {
@@ -22,25 +23,40 @@ public class KafkaImageProcessor {
         final StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
 
         // Kafka consumer properties
-        Properties properties = new Properties();
-        properties.setProperty("bootstrap.servers", "10.70.6.244:9092");
-        properties.setProperty("group.id", "flink-image-consumer-debug");
-        properties.setProperty("auto.offset.reset", "earliest");
+        Properties consumerProperties = new Properties();
+        consumerProperties.setProperty("bootstrap.servers", "10.70.6.244:9092");
+        consumerProperties.setProperty("group.id", "flink-image-consumer-debug");
+        consumerProperties.setProperty("auto.offset.reset", "earliest");
+
+        // Kafka producer properties
+        Properties producerProperties = new Properties();
+        producerProperties.setProperty("bootstrap.servers", "10.70.6.244:9092");
 
         // Kafka consumer
         FlinkKafkaConsumer<ImageDataOuterClass.ImageData> kafkaConsumer = new FlinkKafkaConsumer<>(
-                "flink_test11",
+                "flink_test12",
                 new ImageDataDeserializationSchema(),
-                properties
+                consumerProperties
         );
 
         kafkaConsumer.setStartFromEarliest();
 
+        // Kafka producer
+        FlinkKafkaProducer<String> kafkaProducer = new FlinkKafkaProducer<>(
+                "text_topic1",
+                new SimpleStringSchema(),
+                producerProperties
+        );
+
         // DataStream processing
         DataStream<ImageDataOuterClass.ImageData> imageStream = env.addSource(kafkaConsumer);
 
+
         imageStream.map(imageData -> {
             try {
+                // Debug: Print the incoming data
+                System.out.println("Received ImageData: " + imageData.getFilename());
+
                 // Decode the image bytes
                 BufferedImage image = ImageIO.read(new ByteArrayInputStream(imageData.getImageBytes().toByteArray()));
                 if (image == null) {
@@ -48,7 +64,7 @@ public class KafkaImageProcessor {
                     return null;
                 }
 
-                // Log image resolution
+                // Debug: Print image resolution
                 int width = image.getWidth();
                 int height = image.getHeight();
                 System.out.println("Image: " + imageData.getFilename() + ", Resolution: " + width + "x" + height);
@@ -58,16 +74,32 @@ public class KafkaImageProcessor {
                 String response = sendImageToApi(apiUrl, imageData.getFilename(), imageData.getImageBytes().toByteArray());
                 System.out.println("API Response for " + imageData.getFilename() + ": " + response);
 
+                // Extract car count from the response
+                String carCount = extractCarCount(response);
+
+                // Debug: Print extracted car count
+                if (carCount != null) {
+                    System.out.println("Extracted car count: " + carCount);
+                    return carCount; // Return car count to send to the Kafka topic
+                } else {
+                    System.err.println("Failed to extract car count for: " + imageData.getFilename());
+                }
             } catch (Exception e) {
                 System.err.println("Error processing ImageData: " + e.getMessage());
                 e.printStackTrace();
             }
-            return imageData;
-        }).name("Image Processing");
+            return null;
+        }).filter(carCount -> carCount != null)
+  .map(carCount -> {
+      // Debug: Before sending to Kafka
+      System.out.println("Sending Car Count to Kafka: " + carCount);
+      return carCount;
+  }).addSink(kafkaProducer).name("Car Count Kafka Producer");
 
         // Execute the Flink job
         env.execute("Kafka Image Processor with Flask API");
     }
+
 
 public static String sendImageToApi(String apiUrl, String filename, byte[] imageData) {
     // Use a boundary format more similar to curl's
@@ -164,8 +196,21 @@ public static String sendImageToApi(String apiUrl, String filename, byte[] image
     }
 }
 
-    public static class ImageDataDeserializationSchema implements DeserializationSchema<ImageDataOuterClass.ImageData> {
 
+    public static String extractCarCount(String apiResponse) {
+        try {
+            // Parse the JSON response to extract car_count
+            String[] responseParts = apiResponse.split(":");
+            if (responseParts.length > 1) {
+                return responseParts[1].replaceAll("[^0-9]", ""); // Extract numeric car count
+            }
+        } catch (Exception e) {
+            System.err.println("Error extracting car count: " + e.getMessage());
+        }
+        return null;
+    }
+
+    public static class ImageDataDeserializationSchema implements DeserializationSchema<ImageDataOuterClass.ImageData> {
         @Override
         public ImageDataOuterClass.ImageData deserialize(byte[] message) throws InvalidProtocolBufferException {
             return ImageDataOuterClass.ImageData.parseFrom(message);
