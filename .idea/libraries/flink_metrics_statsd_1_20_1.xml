@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="flink-metrics-statsd-1.20.1">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/.venv/lib64/python3.10/site-packages/pyflink/plugins/metrics-statsd/flink-metrics-statsd-1.20.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

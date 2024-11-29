@@ -1,0 +1,7 @@
+image_dataset/ImageDataOuterClass.class
+image_dataset/ImageDataOuterClass$ImageData$Builder.class
+com/example/flink/KafkaImageProcessor$ImageDataDeserializationSchema.class
+image_dataset/ImageDataOuterClass$ImageDataOrBuilder.class
+image_dataset/ImageDataOuterClass$ImageData$1.class
+image_dataset/ImageDataOuterClass$ImageData.class
+com/example/flink/KafkaImageProcessor.class

@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="bash-java-utils">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/.venv/lib64/python3.10/site-packages/pyflink/bin/bash-java-utils.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

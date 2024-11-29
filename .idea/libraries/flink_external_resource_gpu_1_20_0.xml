@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="flink-external-resource-gpu-1.20.0">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/.venv/lib/python3.10/site-packages/pyflink/plugins/external-resource-gpu/flink-external-resource-gpu-1.20.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

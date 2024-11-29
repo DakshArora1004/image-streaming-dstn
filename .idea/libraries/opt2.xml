@@ -1,0 +1,10 @@
+<component name="libraryTable">
+  <library name="opt2">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/.venv/lib/python3.10/site-packages/pyflink/opt/flink-python-1.20.0.jar!/" />
+      <root url="jar://$PROJECT_DIR$/.venv/lib/python3.10/site-packages/pyflink/opt/flink-sql-client-1.20.0.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>

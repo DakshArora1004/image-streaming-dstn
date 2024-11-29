@@ -6,7 +6,7 @@ import os
 
 # Initialize Kafka consumer
 consumer = KafkaConsumer(
-    '21_test1',
+    'flink_test7',
     bootstrap_servers='10.30.21.253:9092',
     auto_offset_reset='earliest',
     enable_auto_commit=False ,
