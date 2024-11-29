@@ -1,0 +1,7 @@
+syntax = "proto3";
+
+message TextData {
+  int32 id = 1;               // Unique ID for the text data
+  string content = 2;         // The actual text content
+  string metadata = 3;        // Optional metadata, e.g., filename or source
+}
