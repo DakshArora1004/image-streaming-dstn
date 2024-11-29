@@ -1,8 +1,0 @@
-// image_dataset.proto
-syntax = "proto3";
-
-message ImageData {
-    bytes image_bytes = 1;
-    string filename = 2;
-    int32 id = 3;  // Optional: image ID if you want to track or identify images
-}
