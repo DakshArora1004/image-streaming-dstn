@@ -4,7 +4,7 @@ import os
 
 # Initialize Kafka producer
 producer = KafkaProducer(
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers='10.70.6.244:9092',
     value_serializer=lambda v: v,  # No need for additional serialization
 )
 

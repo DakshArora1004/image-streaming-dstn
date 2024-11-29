@@ -5,7 +5,7 @@ import os
 # Initialize Kafka consumer
 consumer = KafkaConsumer(
     'text_topic',  # Kafka topic for text data
-    bootstrap_servers='localhost:9092',
+    bootstrap_servers='10.70.6.244:9092',
     auto_offset_reset='earliest',
     enable_auto_commit=False,
     fetch_max_wait_ms=100,
