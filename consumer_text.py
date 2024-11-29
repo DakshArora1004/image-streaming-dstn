@@ -11,16 +11,22 @@ consumer = KafkaConsumer(
     fetch_max_wait_ms=100,
 )
 
-def consume_text(save_path='received_data'):
-    os.makedirs(save_path, exist_ok=True)  # Ensure the save directory exists
+def consume_text(save_path='/mnt/glusterfs/received_data'):
+    """
+    Consume text data from Kafka and save it to the GlusterFS volume.
+    :param save_path: Directory on GlusterFS volume to save the text files.
+    """
+    os.makedirs(save_path, exist_ok=True)  # Ensure the save directory exists on GlusterFS
 
     for message in consumer:
         # Deserialize protobuf message
         text_data = text_dataset_pb2.TextData()
         text_data.ParseFromString(message.value)
 
-        # Optionally, process or save the text content
+        # Define the filename to save the text content
         filename = os.path.join(save_path, f"text_{text_data.id}.txt")
+
+        # Save the content to a file within the GlusterFS volume
         with open(filename, 'w', encoding='utf-8') as file:
             file.write(text_data.content)
         
